@@ -1,0 +1,8 @@
+[package]
+name = "guelderose"
+version = "0.1.0"
+authors = ["Artem Sergeev"]
+edition = "2024"
+publish = false
+
+[dependencies]
