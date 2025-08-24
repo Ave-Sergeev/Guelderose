@@ -1,0 +1,16 @@
+# Redis
+redis:
+  host: "127.0.0.1"
+  port: "6379"
+  secret: "secret"
+  queue_poll_delay: 100
+  queue_read_delay: 1000
+# Kafka
+kafka:
+  topic: "test_topic"
+  group_id: "test_group"
+  batch_size: 1
+  bootstrap_servers: ["127.0.0.1:9092"]
+# Logging
+logging:
+  log_level: "DEBUG"
