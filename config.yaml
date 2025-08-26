@@ -1,16 +1,24 @@
+# Disclaimer
+# only for test, in a real project credentials will be stored differently (for example in Vault, K8s secrets, ...)
+#
 # Redis
 redis:
   host: "127.0.0.1"
   port: "6379"
   secret: "secret"
-  queue_poll_delay: 100
-  queue_read_delay: 1000
+  poll_delay_ms: 500
+  read_delay_ms: 1000
+  queues:
+    inbox: "inbox_queue"
+    outbox: "outbox_queue"
 # Kafka
 kafka:
-  topic: "test_topic"
   group_id: "test_group"
   batch_size: 1
-  bootstrap_servers: ["127.0.0.1:9092"]
+  bootstrap_servers: [ "127.0.0.1:9092" ]
+  topics:
+    input: "test_input_topic"
+    output: "test_output_topic"
 # Logging
 logging:
   log_level: "DEBUG"

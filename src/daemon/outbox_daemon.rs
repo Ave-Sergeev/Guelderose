@@ -1,0 +1,55 @@
+use crate::kafka::kafka_producer::AnyKafkaProducer;
+use crate::setting::settings::RedisConfig;
+use crate::storage::redis_queue::RedisQueue;
+use anyhow::Error;
+use std::sync::Arc;
+use std::time::Duration;
+
+pub struct OutboxDaemon {
+    redis_queue: Arc<RedisQueue>,
+    redis_config: RedisConfig,
+    producer: AnyKafkaProducer,
+}
+
+impl OutboxDaemon {
+    pub fn new(redis_queue: Arc<RedisQueue>, redis_config: RedisConfig, producer: AnyKafkaProducer) -> Self {
+        OutboxDaemon {
+            redis_queue,
+            redis_config,
+            producer,
+        }
+    }
+
+    async fn process_message(&self, message: &str) -> Result<(), Error> {
+        let queue_key = self.redis_config.queues.inbox.as_str();
+
+        let result = self.producer.send(message).await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                log::error!("Failed to process message: {err}");
+
+                self.redis_queue.push(queue_key, message).await
+            }
+        }
+    }
+
+    async fn process_queue(&self) -> Result<(), Error> {
+        let queue_key = self.redis_config.queues.inbox.as_str();
+        let duration = Duration::from_millis(100);
+
+        loop {
+            let result = self.redis_queue.pop(queue_key).await?;
+
+            match result {
+                Some(message) => self.process_message(message.as_str()).await?,
+                None => tokio::time::sleep(duration).await,
+            }
+        }
+    }
+
+    pub async fn start(self) -> Result<(), Error> {
+        self.process_queue().await
+    }
+}

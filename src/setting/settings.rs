@@ -9,16 +9,29 @@ pub struct RedisConfig {
     pub host: String,
     pub port: String,
     pub secret: String,
-    pub queue_poll_delay: u64,
-    pub queue_read_delay: u64
+    pub poll_delay_ms: u64,
+    pub read_delay_ms: u64,
+    pub queues: RedisQueues,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct RedisQueues {
+    pub inbox: String,
+    pub outbox: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct KafkaConfig {
-    pub topic: String,
     pub group_id: String,
     pub batch_size: usize,
     pub bootstrap_servers: Vec<String>,
+    pub topics: KafkaTopics,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct KafkaTopics {
+    pub input: String,
+    pub output: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]

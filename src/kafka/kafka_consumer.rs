@@ -9,14 +9,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub struct AnyKafkaConsumer {
-    inbox_queue: Arc<RedisQueue>,
+    redis_queue: Arc<RedisQueue>,
     consumer: StreamConsumer,
     kafka_config: KafkaConfig,
     redis_config: RedisConfig,
 }
 
 impl AnyKafkaConsumer {
-    pub fn new(inbox_queue: Arc<RedisQueue>, kafka_config: KafkaConfig, redis_config: RedisConfig) -> Self {
+    pub fn new(redis_queue: Arc<RedisQueue>, kafka_config: KafkaConfig, redis_config: RedisConfig) -> Self {
         let consumer: StreamConsumer = ClientConfig::new()
             .set("group.id", &kafka_config.group_id)
             .set("bootstrap.servers", &kafka_config.bootstrap_servers.join(","))
@@ -24,7 +24,7 @@ impl AnyKafkaConsumer {
             .expect("Consumer creation failed");
 
         AnyKafkaConsumer {
-            inbox_queue,
+            redis_queue,
             consumer,
             kafka_config,
             redis_config,
@@ -32,7 +32,7 @@ impl AnyKafkaConsumer {
     }
 
     pub async fn consume(&self) -> Result<(), Error> {
-        let topic = self.kafka_config.topic.as_str();
+        let topic = self.kafka_config.topics.input.as_str();
         let batch_size = self.kafka_config.batch_size;
 
         self.consumer.subscribe(&[topic])?;
@@ -70,15 +70,15 @@ impl AnyKafkaConsumer {
     }
 
     async fn process_batch(&self, batch: &[BorrowedMessage<'_>]) -> Result<(), Error> {
-        let queue_key = "inbox";
-        let topic = self.kafka_config.topic.as_str();
-        let poll_delay = Duration::from_millis(self.redis_config.queue_poll_delay);
+        let topic = self.kafka_config.topics.input.as_str();
+        let queue_key = self.redis_config.queues.inbox.as_str();
+        let poll_delay = Duration::from_millis(self.redis_config.poll_delay_ms);
 
         for message in batch {
             if let Some(payload) = message.payload() {
                 match std::str::from_utf8(payload) {
                     Ok(str) => {
-                        self.inbox_queue.push(queue_key, str).await?;
+                        self.redis_queue.push(queue_key, str).await?;
                         log::info!("Message consumed from topic [{topic}] and pushed to [{queue_key}] queue");
                     }
                     Err(err) => {
@@ -88,7 +88,7 @@ impl AnyKafkaConsumer {
             }
         }
 
-        self.inbox_queue.check_queue(queue_key, poll_delay).await?;
+        self.redis_queue.check_queue(queue_key, poll_delay).await?;
 
         for message in batch {
             self.consumer.commit_message(message, CommitMode::Async)?;

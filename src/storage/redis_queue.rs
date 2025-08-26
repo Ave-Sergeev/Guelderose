@@ -2,7 +2,6 @@ use crate::setting::settings::RedisConfig;
 use anyhow::Error;
 use redis::AsyncCommands;
 use redis::aio::MultiplexedConnection;
-use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub struct RedisQueue {
@@ -18,25 +17,19 @@ impl RedisQueue {
         }
     }
 
-    pub async fn push<T>(&self, queue_key: &str, message: &T) -> Result<(), Error>
-    where
-        T: Serialize + ?Sized,
-    {
-        let mut con = self.connection.clone();
+    pub async fn push(&self, queue_key: &str, message: &str) -> Result<(), Error> {
+        let mut connection = self.connection.clone();
 
         let serialized_message = serde_json::to_string(message)?;
 
-        let _: i64 = con.rpush(queue_key, serialized_message).await?;
-        log::debug!("Pushed item to queue: {}", queue_key);
+        let _: i64 = connection.rpush(queue_key, serialized_message).await?;
+        log::debug!("Pushed item to queue: {queue_key}");
 
         Ok(())
     }
 
-    pub async fn pop<T>(&self, queue_key: &str) -> Result<Option<T>, Error>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let read_delay = Duration::from_millis(self.redis_config.queue_read_delay);
+    pub async fn pop(&self, queue_key: &str) -> Result<Option<String>, Error> {
+        let read_delay = Duration::from_millis(self.redis_config.read_delay_ms);
         let mut connection = self.connection.clone();
 
         loop {
@@ -45,11 +38,11 @@ impl RedisQueue {
             match result {
                 Some(serialized) => match serde_json::from_str(&serialized) {
                     Ok(item) => {
-                        log::debug!("Popped item from queue: {}", queue_key);
+                        log::debug!("Popped item from queue: {queue_key}");
                         return Ok(Some(item));
                     }
                     Err(err) => {
-                        log::debug!("Failed to deserialize item from queue {}: {}", queue_key, err);
+                        log::debug!("Failed to deserialize item from queue {queue_key}: {err}");
                         continue;
                     }
                 },
@@ -65,7 +58,7 @@ impl RedisQueue {
 
         loop {
             let len: usize = connection.llen(queue_key).await?;
-            log::debug!("Redis queue check: key='{}', length={}", queue_key, len);
+            log::debug!("Redis queue check: key='{queue_key}', length={len}");
 
             if len == 0 {
                 return Ok(());

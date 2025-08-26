@@ -7,10 +7,14 @@ use redis::Client as RedisClient;
 use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::signal;
+use crate::daemon::outbox_daemon::OutboxDaemon;
+use crate::kafka::kafka_producer::AnyKafkaProducer;
 
 mod kafka;
 mod setting;
 mod storage;
+mod daemon;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -23,7 +27,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     log::info!("Settings:\n{}", settings.json_pretty());
 
     let connection_url = format!("redis://:{}@{}:{}/", settings.redis.secret, settings.redis.host, settings.redis.port);
-
     let client = RedisClient::open(connection_url)?;
     let multiplexed_connection = client
         .get_multiplexed_async_connection()
@@ -31,13 +34,29 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .map_err(|err| format!("Cannot connect to Redis. Error: {err}"))?;
     let redis_queue = Arc::new(RedisQueue::new(multiplexed_connection, settings.redis.clone()));
 
-    let kafka_consumer = AnyKafkaConsumer::new(redis_queue, settings.kafka, settings.redis.clone());
-    kafka_consumer
-        .consume()
-        .await
-        .map_err(|err| format!("Kafka consumer error: {err}"))?;
+    let kafka_consumer = AnyKafkaConsumer::new(redis_queue.clone(), settings.kafka.clone(), settings.redis.clone());
+    let kafka_producer = AnyKafkaProducer::new(settings.kafka.clone());
 
-    // TODO: Реализовать поток с Outbox Daemon
+    let outbox_daemon = OutboxDaemon::new(redis_queue.clone(), settings.redis.clone(), kafka_producer);
+
+    let consumer_handle = tokio::spawn(async move {
+        if let Err(err) = kafka_consumer.consume().await {
+            log::error!("Kafka consumer error: {err}");
+        }
+    });
+
+    let outbox_handle = tokio::spawn(async move {
+        if let Err(err) = outbox_daemon.start().await {
+            log::error!("Outbox daemon error: {err}");
+        }
+    });
+
+    log::info!("Service started successfully. Press Ctrl+C to stop.");
+    signal::ctrl_c().await?;
+    log::info!("Shutdown signal received");
+
+    consumer_handle.abort();
+    outbox_handle.abort();
 
     Ok(())
 }
