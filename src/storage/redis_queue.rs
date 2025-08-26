@@ -23,7 +23,7 @@ impl RedisQueue {
         let serialized_message = serde_json::to_string(message)?;
 
         let _: i64 = connection.rpush(queue_key, serialized_message).await?;
-        log::debug!("Pushed item to queue: {queue_key}");
+        log::debug!("Pushed item to queue: [{queue_key}]");
 
         Ok(())
     }
@@ -38,17 +38,15 @@ impl RedisQueue {
             match result {
                 Some(serialized) => match serde_json::from_str(&serialized) {
                     Ok(item) => {
-                        log::debug!("Popped item from queue: {queue_key}");
+                        log::debug!("Popped item from queue: [{queue_key}]");
                         return Ok(Some(item));
                     }
                     Err(err) => {
-                        log::debug!("Failed to deserialize item from queue {queue_key}: {err}");
+                        log::debug!("Failed to deserialize item from queue [{queue_key}]: {err}");
                         continue;
                     }
                 },
-                None => {
-                    tokio::time::sleep(read_delay).await;
-                }
+                None => tokio::time::sleep(read_delay).await,
             }
         }
     }

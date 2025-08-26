@@ -20,7 +20,8 @@ impl AnyKafkaProducer {
     }
 
     pub async fn send(&self, message: &str) -> Result<(), Error> {
-        let record = FutureRecord::to(&self.kafka_config.topics.output)
+        let topic = self.kafka_config.topics.output.as_str();
+        let record = FutureRecord::to(topic)
             .payload(message)
             .key("");
 

@@ -79,7 +79,7 @@ impl AnyKafkaConsumer {
                 match std::str::from_utf8(payload) {
                     Ok(str) => {
                         self.redis_queue.push(queue_key, str).await?;
-                        log::info!("Message consumed from topic [{topic}] and pushed to [{queue_key}] queue");
+                        log::info!("Message consumed from topic: [{topic}] and pushed to queue: [{queue_key}]");
                     }
                     Err(err) => {
                         log::warn!("Invalid UTF-8 payload at topic [{topic}]: {err}");
