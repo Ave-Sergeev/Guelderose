@@ -1,4 +1,6 @@
+use crate::daemon::outbox_daemon::OutboxDaemon;
 use crate::kafka::kafka_consumer::AnyKafkaConsumer;
+use crate::kafka::kafka_producer::AnyKafkaProducer;
 use crate::setting::settings::Settings;
 use crate::storage::redis_queue::RedisQueue;
 use env_logger::Builder;
@@ -8,18 +10,16 @@ use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::signal;
-use crate::daemon::outbox_daemon::OutboxDaemon;
-use crate::kafka::kafka_producer::AnyKafkaProducer;
 
+mod daemon;
 mod kafka;
+mod models;
 mod setting;
 mod storage;
-mod daemon;
-mod models;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let settings = Settings::new("config.yaml").map_err(|err| format!("Failed to load setting: {err}"))?;
+    let settings = Settings::new("config.yaml", "APP").map_err(|err| format!("Failed to load setting: {err}"))?;
 
     Builder::new()
         .filter_level(LevelFilter::from_str(settings.logging.log_level.as_str()).unwrap_or(LevelFilter::Info))

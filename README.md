@@ -33,6 +33,10 @@ In `config.yaml`, the following fields are set:
 - `Logging`
   - `log_level` - level of detail of logs/tracing.
 
+***Important!***  
+Before starting the service, you must ensure that you have overridden all the following environment variables:
+- APP__REDIS__SECRET="your_secure_redis_password"
+
 ### Implementation details
 
 When the service starts, the following are started and begin to run:
@@ -90,5 +94,6 @@ To deploy a project locally in `Docker`, you need to:
 1) Make sure `Docker daemon` is running.
 2) Open a terminal in the project root, go to the `/docker` directory.
 3) Run a command (for example `docker compose up -d`) - dependent services (Redis, Kafka) will start.
-4) Start the service itself (instructions in the `Local launch` section).
-5) Enjoy using `:wink:`.
+4) Go to the Kafka container and run the command to create topics (for example `kafka-topics --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic test_input_topic`).
+5) Start the service itself (instructions in the `Local launch` section).
+6) Enjoy using. :wink:

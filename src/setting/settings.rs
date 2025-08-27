@@ -1,5 +1,5 @@
 use anyhow::Result;
-use config::Config;
+use config::{Config, Environment};
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use std::path::Path;
@@ -47,7 +47,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new(location: &str) -> Result<Self> {
+    pub fn new(location: &str, env_prefix: &str) -> Result<Self> {
         let mut builder = Config::builder();
 
         if Path::new(location).exists() {
@@ -55,6 +55,12 @@ impl Settings {
         } else {
             log::warn!("Configuration file not found");
         }
+
+        builder = builder.add_source(
+            Environment::with_prefix(env_prefix)
+                .separator("__")
+                .prefix_separator("__"),
+        );
 
         let settings = builder.build()?.try_deserialize()?;
 
