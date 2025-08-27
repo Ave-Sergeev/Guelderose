@@ -1,3 +1,4 @@
+use crate::models::input_message::InputMessage;
 use crate::setting::settings::RedisConfig;
 use anyhow::Error;
 use redis::AsyncCommands;
@@ -17,18 +18,17 @@ impl RedisQueue {
         }
     }
 
-    pub async fn push(&self, queue_key: &str, message: &str) -> Result<(), Error> {
+    pub async fn push(&self, queue_key: &str, message: InputMessage) -> Result<(), Error> {
         let mut connection = self.connection.clone();
 
-        let serialized_message = serde_json::to_string(message)?;
+        let serialized_message = serde_json::to_vec(&message)?;
 
         let _: i64 = connection.rpush(queue_key, serialized_message).await?;
-        log::debug!("Pushed item to queue: [{queue_key}]");
 
         Ok(())
     }
 
-    pub async fn pop(&self, queue_key: &str) -> Result<Option<String>, Error> {
+    pub async fn pop(&self, queue_key: &str) -> Result<Option<InputMessage>, Error> {
         let read_delay = Duration::from_millis(self.redis_config.read_delay_ms);
         let mut connection = self.connection.clone();
 
@@ -36,13 +36,11 @@ impl RedisQueue {
             let result: Option<String> = connection.lpop(queue_key, None).await?;
 
             match result {
-                Some(serialized) => match serde_json::from_str(&serialized) {
-                    Ok(item) => {
-                        log::debug!("Popped item from queue: [{queue_key}]");
-                        return Ok(Some(item));
-                    }
+                Some(serialized_message) => match serde_json::from_slice::<InputMessage>(serialized_message.as_bytes())
+                {
+                    Ok(message) => return Ok(Some(message)),
                     Err(err) => {
-                        log::debug!("Failed to deserialize item from queue [{queue_key}]: {err}");
+                        log::error!("Failed to deserialize message from queue [{queue_key}]: {err}");
                         continue;
                     }
                 },

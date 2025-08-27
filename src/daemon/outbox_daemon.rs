@@ -1,4 +1,5 @@
 use crate::kafka::kafka_producer::AnyKafkaProducer;
+use crate::models::input_message::InputMessage;
 use crate::setting::settings::RedisConfig;
 use crate::storage::redis_queue::RedisQueue;
 use anyhow::Error;
@@ -20,15 +21,15 @@ impl OutboxDaemon {
         }
     }
 
-    async fn process_message(&self, message: &str) -> Result<(), Error> {
+    async fn process_message(&self, message: InputMessage) -> Result<(), Error> {
         let queue_key = self.redis_config.queues.outbox.as_str();
 
-        let result = self.producer.send(message).await;
+        let result = self.producer.send(message.clone()).await;
 
         match result {
             Ok(_) => Ok(()),
             Err(err) => {
-                log::error!("Failed to process message: {err}. Message will be returned to the queue: [{queue_key}]");
+                log::error!("Failed to process message: {err}. Message will be returned to the queue: [{queue_key}]. MessageId: {}", message.id);
 
                 self.redis_queue.push(queue_key, message).await
             }
@@ -41,11 +42,11 @@ impl OutboxDaemon {
 
         loop {
             let result = self.redis_queue.pop(queue_key).await?;
-            log::debug!("Popped message from queue: [{queue_key}]");
 
             match result {
                 Some(message) => {
-                    self.process_message(message.as_str()).await?
+                    log::info!("Popped message from queue: [{queue_key}]. MessageId: {}", message.id);
+                    self.process_message(message).await?
                 },
                 None => tokio::time::sleep(duration).await,
             }

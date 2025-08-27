@@ -1,3 +1,4 @@
+use crate::models::input_message::InputMessage;
 use crate::setting::settings::{KafkaConfig, RedisConfig};
 use crate::storage::redis_queue::RedisQueue;
 use anyhow::Error;
@@ -76,10 +77,10 @@ impl AnyKafkaConsumer {
 
         for message in batch {
             if let Some(payload) = message.payload() {
-                match std::str::from_utf8(payload) {
-                    Ok(str) => {
-                        self.redis_queue.push(queue_key, str).await?;
-                        log::info!("Message consumed from topic: [{topic}] and pushed to queue: [{queue_key}]");
+                match serde_json::from_slice::<InputMessage>(payload) {
+                    Ok(message) => {
+                        self.redis_queue.push(queue_key, message.clone()).await?;
+                        log::info!("Message consumed from topic: [{topic}] and pushed to queue: [{queue_key}]. MessageId: {}", message.id);
                     }
                     Err(err) => {
                         log::warn!("Invalid UTF-8 payload at topic [{topic}]: {err}");

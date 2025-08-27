@@ -3,6 +3,7 @@ use crate::setting::settings::KafkaConfig;
 use anyhow::Error;
 use rdkafka::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
+use crate::models::input_message::InputMessage;
 
 pub struct AnyKafkaProducer {
     producer: FutureProducer,
@@ -19,15 +20,18 @@ impl AnyKafkaProducer {
         AnyKafkaProducer { producer, kafka_config }
     }
 
-    pub async fn send(&self, message: &str) -> Result<(), Error> {
+    pub async fn send(&self, message: InputMessage) -> Result<(), Error> {
         let topic = self.kafka_config.topics.output.as_str();
+
+        let serialized_message: String = serde_json::to_string(&message)?;
+
         let record = FutureRecord::to(topic)
-            .payload(message)
+            .payload(&serialized_message)
             .key("");
 
         match self.producer.send(record, Duration::from_secs(5)).await {
-            Ok(delivery) => {
-                log::debug!("Kafka delivery success: {:?}", delivery);
+            Ok(_) => {
+                log::info!("Sending message to topic: [${topic}]. MessageId: {}", message.id);
                 Ok(())
             }
             Err((err, _msg)) => Err(Error::from(err)),

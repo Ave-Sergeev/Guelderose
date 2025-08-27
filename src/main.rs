@@ -15,6 +15,7 @@ mod kafka;
 mod setting;
 mod storage;
 mod daemon;
+mod models;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -32,6 +33,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .get_multiplexed_async_connection()
         .await
         .map_err(|err| format!("Cannot connect to Redis. Error: {err}"))?;
+    log::info!("Successfully connect with Redis");
+
     let redis_queue = Arc::new(RedisQueue::new(multiplexed_connection, settings.redis.clone()));
 
     let kafka_consumer = AnyKafkaConsumer::new(redis_queue.clone(), settings.kafka.clone(), settings.redis.clone());

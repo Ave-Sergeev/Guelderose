@@ -89,6 +89,6 @@ To deploy a project locally in `Docker`, you need to:
 
 1) Make sure `Docker daemon` is running.
 2) Open a terminal in the project root, go to the `/docker` directory.
-3) Run a command (for example `docker-compose up -d`) - dependent services (Redis, Kafka) will start.
+3) Run a command (for example `docker compose up -d`) - dependent services (Redis, Kafka) will start.
 4) Start the service itself (instructions in the `Local launch` section).
 5) Enjoy using `:wink:`.
