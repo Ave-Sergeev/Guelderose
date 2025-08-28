@@ -1,5 +1,6 @@
 use anyhow::Result;
 use config::{Config, Environment};
+use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use std::path::Path;
@@ -43,7 +44,39 @@ pub struct KafkaConfig {
     pub group_id: String,
     pub batch_size: usize,
     pub bootstrap_servers: Vec<String>,
+    pub auth: Option<KafkaAuthConfig>,
     pub topics: KafkaTopics,
+}
+
+impl KafkaConfig {
+    pub fn build_kafka_config(&self) -> ClientConfig {
+        let mut config = ClientConfig::new();
+
+        config
+            .set("group.id", &self.group_id)
+            .set("bootstrap.servers", &self.bootstrap_servers.join(","));
+
+        match &self.auth {
+            Some(auth_config) => {
+                config
+                    .set("security.protocol", &auth_config.protocol)
+                    .set("sasl.mechanism", &auth_config.mechanism)
+                    .set("sasl.username", auth_config.username.clone().unwrap())
+                    .set("sasl.password", auth_config.password.clone().unwrap());
+            }
+            None => {}
+        }
+
+        config
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct KafkaAuthConfig {
+    username: Option<String>,
+    password: Option<String>,
+    protocol: String,
+    mechanism: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]

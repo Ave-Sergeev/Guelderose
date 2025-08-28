@@ -17,8 +17,8 @@ In `config.yaml`, the following fields are set:
 - `Redis`
   - `host` - Redis server host.
   - `port` - Redis server port.
-  - `username` - login for Auth in Redis (optional parameter).
-  - `password` - password for Auth in Redis (optional parameter).
+  - `username` - login for auth in Redis (optional parameter).
+  - `password` - password for auth in Redis (optional parameter).
   - `poll_delay_ms` - delay (in milliseconds) between checking for messages in the queue.
   - `read_delay_ms` - delay (in milliseconds) between reading messages from the queue.
   - `queues` - Redis queue names (keys).
@@ -28,6 +28,11 @@ In `config.yaml`, the following fields are set:
   - `group_id` - Kafka consumer group identifier.
   - `batch_size` - batch size (number of messages) consumed at a time.
   - `bootstrap_servers` - list of Kafka broker addresses.
+  - `auth` - configuration for SASL_PLAINTEXT auth (optional structure).
+    - `username` - username (optional parameter).
+    - `password` - password (optional parameter).
+    - `protocol` - security protocol (e.g. "SASL_PLAINTEXT").
+    - `mechanism` - mechanism (e.g. "PLAIN").
   - `topics` - names of topics in Kafka.
     - `input` - topic name for recognition jobs.
     - `output` - topic name for (un)processed jobs.
@@ -35,12 +40,14 @@ In `config.yaml`, the following fields are set:
   - `log_level` - level of detail of logs/tracing.
 
 ***Important!***  
-For Redis-auth, override credentials via environment variables to avoid storing secrets in YAML.  
+For Redis/Kafka auth, override credentials via environment variables to avoid storing secrets in YAML.  
 Depending on your Redis configuration, use username, username+password, or neither.  
 
 Environment variables:
 - APP__REDIS__USERNAME="your_redis_login"
-- APP__REDIS__USERNAME="your_secure_redis_password"
+- APP__REDIS__PASSWORD="your_secure_redis_password"
+- APP__KAFKA__AUTH__USERNAME="your_kafka_login"
+- APP__KAFKA__AUTH__PASSWORD="your_secure_kafka_password"
 
 ### Implementation details
 

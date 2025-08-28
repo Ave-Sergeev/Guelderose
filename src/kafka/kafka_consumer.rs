@@ -3,9 +3,9 @@ use crate::setting::settings::{KafkaConfig, RedisConfig};
 use crate::storage::redis_queue::RedisQueue;
 use anyhow::Error;
 use futures::stream::StreamExt;
+use rdkafka::Message;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::message::BorrowedMessage;
-use rdkafka::{ClientConfig, Message};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -18,9 +18,8 @@ pub struct AnyKafkaConsumer {
 
 impl AnyKafkaConsumer {
     pub fn new(redis_queue: Arc<RedisQueue>, kafka_config: KafkaConfig, redis_config: RedisConfig) -> Self {
-        let consumer: StreamConsumer = ClientConfig::new()
-            .set("group.id", &kafka_config.group_id)
-            .set("bootstrap.servers", &kafka_config.bootstrap_servers.join(","))
+        let consumer: StreamConsumer = kafka_config
+            .build_kafka_config()
             .create()
             .expect("Consumer creation failed");
 
@@ -80,7 +79,10 @@ impl AnyKafkaConsumer {
                 match serde_json::from_slice::<InputMessage>(payload) {
                     Ok(message) => {
                         self.redis_queue.push(queue_key, message.clone()).await?;
-                        log::info!("Message consumed from topic: [{topic}] and pushed to queue: [{queue_key}]. MessageId: {}", message.id);
+                        log::info!(
+                            "Message consumed from topic: [{topic}] and pushed to queue: [{queue_key}]. MessageId: {}",
+                            message.id
+                        );
                     }
                     Err(err) => {
                         log::warn!("Invalid UTF-8 payload at topic [{topic}]: {err}");
