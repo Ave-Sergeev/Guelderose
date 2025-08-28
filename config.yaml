@@ -1,12 +1,7 @@
-# Attention!
-# Before starting the service, you must ensure that all the following environment variables are set:
-# APP__REDIS__SECRET="your_secure_redis_password"
-#
 # Redis
 redis:
   host: "127.0.0.1"
   port: "6379"
-  secret: ""
   poll_delay_ms: 500
   read_delay_ms: 1000
   queues:

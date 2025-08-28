@@ -31,7 +31,7 @@ impl AnyKafkaProducer {
 
         match self.producer.send(record, Duration::from_secs(5)).await {
             Ok(_) => {
-                log::info!("Sending message to topic: [${topic}]. MessageId: {}", message.id);
+                log::info!("Sending message to topic: [{topic}]. MessageId: {}", message.id);
                 Ok(())
             }
             Err((err, _msg)) => Err(Error::from(err)),

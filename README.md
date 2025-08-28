@@ -17,7 +17,8 @@ In `config.yaml`, the following fields are set:
 - `Redis`
   - `host` - Redis server host.
   - `port` - Redis server port.
-  - `secret` - Redis Auth password.
+  - `username` - login for Auth in Redis (optional parameter).
+  - `password` - password for Auth in Redis (optional parameter).
   - `poll_delay_ms` - delay (in milliseconds) between checking for messages in the queue.
   - `read_delay_ms` - delay (in milliseconds) between reading messages from the queue.
   - `queues` - Redis queue names (keys).
@@ -34,8 +35,12 @@ In `config.yaml`, the following fields are set:
   - `log_level` - level of detail of logs/tracing.
 
 ***Important!***  
-Before starting the service, you must ensure that you have overridden all the following environment variables:
-- APP__REDIS__SECRET="your_secure_redis_password"
+For Redis-auth, override credentials via environment variables to avoid storing secrets in YAML.  
+Depending on your Redis configuration, use username, username+password, or neither.  
+
+Environment variables:
+- APP__REDIS__USERNAME="your_redis_login"
+- APP__REDIS__USERNAME="your_secure_redis_password"
 
 ### Implementation details
 

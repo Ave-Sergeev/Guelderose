@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     log::info!("Settings:\n{}", settings.json_pretty());
 
-    let connection_url = format!("redis://:{}@{}:{}/", settings.redis.secret, settings.redis.host, settings.redis.port);
+    let connection_url = settings.redis.build_redis_connect_url();
     let client = RedisClient::open(connection_url)?;
     let multiplexed_connection = client
         .get_multiplexed_async_connection()

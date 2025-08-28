@@ -8,10 +8,28 @@ use std::path::Path;
 pub struct RedisConfig {
     pub host: String,
     pub port: String,
-    pub secret: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub poll_delay_ms: u64,
     pub read_delay_ms: u64,
     pub queues: RedisQueues,
+}
+
+impl RedisConfig {
+    pub fn build_redis_connect_url(&self) -> String {
+        let host = &self.host;
+        let port = &self.port;
+
+        let username = self.username.as_deref();
+        let password = self.password.as_deref();
+
+        match (username, password) {
+            (Some(user), Some(pass)) => format!("redis://{}:{}@{}:{}/", user, pass, host, port),
+            (None, Some(pass)) => format!("redis://:{}@{}:{}/", pass, host, port),
+            (Some(user), None) => format!("redis://{}@{}:{}/", user, host, port),
+            (None, None) => format!("redis://{}:{}/", host, port),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
