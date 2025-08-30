@@ -24,12 +24,16 @@ impl OutboxDaemon {
     async fn process_message(&self, message: InputMessage) -> Result<(), Error> {
         let queue_key = self.redis_config.queues.outbox.as_str();
 
+        // TODO: Добавить выгрузку результата inner_storage (S3), и загрузку в outer_storage (S3). Выгрузка и загрузка происходят перед отправкой message в Kafka.
         let result = self.producer.send(message.clone()).await;
 
         match result {
             Ok(_) => Ok(()),
             Err(err) => {
-                log::error!("Failed to process message: {err}. Message will be returned to the queue: [{queue_key}]. MessageId: {}", message.id);
+                log::error!(
+                    "Failed to process message: {err}. Message will be returned to the queue: [{queue_key}]. MessageId: {}",
+                    message.id
+                );
 
                 self.redis_queue.push(queue_key, message).await
             }
@@ -47,7 +51,7 @@ impl OutboxDaemon {
                 Some(message) => {
                     log::info!("Popped message from queue: [{queue_key}]. MessageId: {}", message.id);
                     self.process_message(message).await?
-                },
+                }
                 None => tokio::time::sleep(duration).await,
             }
         }

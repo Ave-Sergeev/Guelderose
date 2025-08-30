@@ -6,6 +6,15 @@ use serde_json::to_string_pretty;
 use std::path::Path;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct S3Config {
+    pub url: String,
+    pub bucket: String,
+    pub access_key: Option<String>,
+    pub secret_key: Option<String>,
+    pub client_connection_timeout_seconds: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct RedisConfig {
     pub host: String,
     pub port: String,
@@ -92,6 +101,7 @@ pub struct Logging {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Settings {
+    pub s3: S3Config,
     pub redis: RedisConfig,
     pub kafka: KafkaConfig,
     pub logging: Logging,

@@ -14,6 +14,12 @@ UPD: The project is not finished, improvements will be added as soon as possible
 
 In `config.yaml`, the following fields are set:
 
+- `S3`
+  - `url` - S3 storage address.
+  - `bucket` - name of the bucket used.
+  - `access_key` - access key to S3 storage (optional parameter).
+  - `secret_key` - secret key for accessing S3 storage (optional parameter).
+  - `client_connection_timeout_seconds` - connection lifetime.
 - `Redis`
   - `host` - Redis server host.
   - `port` - Redis server port.
@@ -40,10 +46,12 @@ In `config.yaml`, the following fields are set:
   - `log_level` - level of detail of logs/tracing.
 
 ***Important!***  
-For Redis/Kafka auth, override credentials via environment variables to avoid storing secrets in YAML.  
+For S3/Redis/Kafka, override credentials via environment variables to avoid storing secrets in YAML.  
 Depending on your Redis configuration, use username, username+password, or neither.  
 
 Environment variables:
+- APP__S3__ACCESS_KEY="your_s3_login"
+- APP__S3__SECRET_KEY="your_secure_s3_password"
 - APP__REDIS__USERNAME="your_redis_login"
 - APP__REDIS__PASSWORD="your_secure_redis_password"
 - APP__KAFKA__AUTH__USERNAME="your_kafka_login"

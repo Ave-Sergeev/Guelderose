@@ -78,6 +78,7 @@ impl AnyKafkaConsumer {
             if let Some(payload) = message.payload() {
                 match serde_json::from_slice::<InputMessage>(payload) {
                     Ok(message) => {
+                        // TODO: Добавить выгрузку image из outer_storage (S3), и загрузку в inner_storage (S3). Выгрузка и загрузка происходят перед отправкой message в queue.
                         self.redis_queue.push(queue_key, message.clone()).await?;
                         log::info!(
                             "Message consumed from topic: [{topic}] and pushed to queue: [{queue_key}]. MessageId: {}",

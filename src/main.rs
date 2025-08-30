@@ -3,6 +3,7 @@ use crate::kafka::kafka_consumer::AnyKafkaConsumer;
 use crate::kafka::kafka_producer::AnyKafkaProducer;
 use crate::setting::settings::Settings;
 use crate::storage::redis_queue::RedisQueue;
+use crate::storage::s3_storage::S3Storage;
 use env_logger::Builder;
 use log::LevelFilter;
 use redis::Client as RedisClient;
@@ -27,6 +28,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     log::info!("Settings:\n{}", settings.json_pretty());
 
+    let _ = S3Storage::new(settings.s3).await;
+    log::info!("Successfully creates a new client from S3");
+
     let connection_url = settings.redis.build_redis_connect_url();
     let client = RedisClient::open(connection_url)?;
     let multiplexed_connection = client
@@ -43,12 +47,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let outbox_daemon = OutboxDaemon::new(redis_queue.clone(), settings.redis.clone(), kafka_producer);
 
     let consumer_handle = tokio::spawn(async move {
+        log::info!("Kafka consumer task started");
+
         if let Err(err) = kafka_consumer.consume().await {
             log::error!("Kafka consumer error: {err}");
         }
     });
 
     let outbox_handle = tokio::spawn(async move {
+        log::info!("Outbox daemon task started");
+
         if let Err(err) = outbox_daemon.start().await {
             log::error!("Outbox daemon error: {err}");
         }

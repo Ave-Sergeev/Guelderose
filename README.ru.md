@@ -12,6 +12,12 @@ UPD: Проект не завершен, по мере возможности б
 
 В `config.yaml` устанавливаются значения для полей:
 
+- `S3`
+  - `url` - адрес S3 хранилища.
+  - `bucket` - имя используемого bucket.
+  - `access_key` - ключ доступа к S3 хранилищу (опциональный параметр).
+  - `secret_key` - секретный ключ для доступа в S3 хранилище (опциональный параметр).
+  - `client_connection_timeout_seconds` - время жизни соединения.
 - `Redis`
   - `host` - хост сервера Redis.
   - `port` - порт сервера Redis.
@@ -38,10 +44,12 @@ UPD: Проект не завершен, по мере возможности б
   - `log_level` - уровень детализации логов/трассировки.
 
 ***Важно!***  
-Для Redis/Kafka auth переопределяйте учетные данные через переменные окружения, чтобы не хранить секреты в YAML.  
+Для S3/Redis/Kafka переопределяйте учетные данные через переменные окружения, чтобы не хранить секреты в YAML.  
 В зависимости от вашей конфигурации Redis используйте username, username+password, либо без них.  
 
 Переменные среды:
+- APP__S3__ACCESS_KEY="your_s3_login"
+- APP__S3__SECRET_KEY="your_secure_s3_password"
 - APP__REDIS__USERNAME="your_redis_login"
 - APP__REDIS__PASSWORD="your_secure_redis_password"
 - APP__KAFKA__AUTH__USERNAME="your_kafka_login"
