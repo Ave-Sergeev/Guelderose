@@ -1,9 +1,9 @@
-use std::time::Duration;
+use crate::models::input_message::InputMessage;
 use crate::setting::settings::KafkaConfig;
 use anyhow::Error;
 use rdkafka::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use crate::models::input_message::InputMessage;
+use std::time::Duration;
 
 pub struct AnyKafkaProducer {
     producer: FutureProducer,
@@ -13,7 +13,7 @@ pub struct AnyKafkaProducer {
 impl AnyKafkaProducer {
     pub fn new(kafka_config: KafkaConfig) -> Self {
         let producer: FutureProducer = ClientConfig::new()
-            .set("bootstrap.servers", &kafka_config.bootstrap_servers.join(","))
+            .set("bootstrap.servers", kafka_config.bootstrap_servers.join(","))
             .create()
             .expect("Failed to create Kafka producer");
 
@@ -25,9 +25,7 @@ impl AnyKafkaProducer {
 
         let serialized_message: String = serde_json::to_string(&message)?;
 
-        let record = FutureRecord::to(topic)
-            .payload(&serialized_message)
-            .key("");
+        let record = FutureRecord::to(topic).payload(&serialized_message).key("");
 
         match self.producer.send(record, Duration::from_secs(5)).await {
             Ok(_) => {

@@ -1,7 +1,7 @@
 # S3
 s3:
   url: "http://127.0.0.1:9000"
-  bucket: "test_bucket"
+  bucket: "test"
   client_connection_timeout_seconds: 300
 # Redis
 redis:

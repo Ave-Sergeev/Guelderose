@@ -39,10 +39,7 @@ impl RedisQueue {
                 Some(serialized_message) => match serde_json::from_slice::<InputMessage>(serialized_message.as_bytes())
                 {
                     Ok(message) => return Ok(Some(message)),
-                    Err(err) => {
-                        log::error!("Failed to deserialize message from queue [{queue_key}]: {err}");
-                        continue;
-                    }
+                    Err(err) => log::error!("Failed to deserialize message from queue [{queue_key}]: {err}"),
                 },
                 None => tokio::time::sleep(read_delay).await,
             }
@@ -58,9 +55,9 @@ impl RedisQueue {
 
             if len == 0 {
                 return Ok(());
-            } else {
-                tokio::time::sleep(poll_delay).await;
             }
+
+            tokio::time::sleep(poll_delay).await;
         }
     }
 }

@@ -4,13 +4,14 @@ use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use std::path::Path;
+use crate::utils::secret::Secret;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct S3Config {
     pub url: String,
     pub bucket: String,
-    pub access_key: Option<String>,
-    pub secret_key: Option<String>,
+    pub access_key: Option<Secret>,
+    pub secret_key: Option<Secret>,
     pub client_connection_timeout_seconds: u64,
 }
 
@@ -18,8 +19,8 @@ pub struct S3Config {
 pub struct RedisConfig {
     pub host: String,
     pub port: String,
-    pub username: Option<String>,
-    pub password: Option<String>,
+    pub username: Option<Secret>,
+    pub password: Option<Secret>,
     pub poll_delay_ms: u64,
     pub read_delay_ms: u64,
     pub queues: RedisQueues,
@@ -30,14 +31,14 @@ impl RedisConfig {
         let host = &self.host;
         let port = &self.port;
 
-        let username = self.username.as_deref();
-        let password = self.password.as_deref();
+        let username = self.username.clone();
+        let password = self.password.clone();
 
         match (username, password) {
-            (Some(user), Some(pass)) => format!("redis://{}:{}@{}:{}/", user, pass, host, port),
-            (None, Some(pass)) => format!("redis://:{}@{}:{}/", pass, host, port),
-            (Some(user), None) => format!("redis://{}@{}:{}/", user, host, port),
-            (None, None) => format!("redis://{}:{}/", host, port),
+            (Some(user), Some(pass)) => format!("redis://{}:{}@{host}:{port}/", user.reveal(), pass.reveal()),
+            (None, Some(pass)) => format!("redis://:{}@{host}:{port}/", pass.reveal()),
+            (Some(user), None) => format!("redis://{}@{host}:{port}/", user.reveal()),
+            (None, None) => format!("redis://{host}:{port}/"),
         }
     }
 }
@@ -63,17 +64,14 @@ impl KafkaConfig {
 
         config
             .set("group.id", &self.group_id)
-            .set("bootstrap.servers", &self.bootstrap_servers.join(","));
+            .set("bootstrap.servers", self.bootstrap_servers.join(","));
 
-        match &self.auth {
-            Some(auth_config) => {
-                config
-                    .set("security.protocol", &auth_config.protocol)
-                    .set("sasl.mechanism", &auth_config.mechanism)
-                    .set("sasl.username", auth_config.username.clone().unwrap())
-                    .set("sasl.password", auth_config.password.clone().unwrap());
-            }
-            None => {}
+        if let Some(auth_config) = &self.auth {
+            config
+                .set("security.protocol", &auth_config.protocol)
+                .set("sasl.mechanism", &auth_config.mechanism)
+                .set("sasl.username", auth_config.username.clone().unwrap().reveal())
+                .set("sasl.password", auth_config.password.clone().unwrap().reveal());
         }
 
         config
@@ -82,8 +80,8 @@ impl KafkaConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct KafkaAuthConfig {
-    username: Option<String>,
-    password: Option<String>,
+    username: Option<Secret>,
+    password: Option<Secret>,
     protocol: String,
     mechanism: String,
 }

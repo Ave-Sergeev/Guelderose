@@ -6,7 +6,14 @@
 
 ### Description
 
-This project is a kind of connector (its prototype) for asynchronous processing of recognition tasks.
+This project is a kind of connector for asynchronous processing of recognition tasks.
+
+This service performs:
+- Consumes messages (recognition tasks) from `Kafka` + sends them to `inbox queue`.
+- Receives results/errors from `outbox queue` and publishes them back to `Kafka`.
+- Uploads/downloads files for recognition and results between file storages (`S3`).
+
+Supported types of recognition: "TypeOne", TypeTwo".
 
 UPD: The project is not finished, improvements will be added as soon as possible.
 
@@ -15,23 +22,23 @@ UPD: The project is not finished, improvements will be added as soon as possible
 In `config.yaml`, the following fields are set:
 
 - `S3`
-  - `url` - S3 storage address.
+  - `url` - storage address.
   - `bucket` - name of the bucket used.
   - `access_key` - access key to S3 storage (optional parameter).
   - `secret_key` - secret key for accessing S3 storage (optional parameter).
   - `client_connection_timeout_seconds` - connection lifetime.
 - `Redis`
-  - `host` - Redis server host.
-  - `port` - Redis server port.
+  - `host` - server host.
+  - `port` - server port.
   - `username` - login for auth in Redis (optional parameter).
   - `password` - password for auth in Redis (optional parameter).
   - `poll_delay_ms` - delay (in milliseconds) between checking for messages in the queue.
   - `read_delay_ms` - delay (in milliseconds) between reading messages from the queue.
-  - `queues` - Redis queue names (keys).
+  - `queues` - queue names (keys).
     - `inbox` - input queue name (for recognition jobs).
     - `outbox` - output queue name (for processed jobs).
 - `Kafka`
-  - `group_id` - Kafka consumer group identifier.
+  - `group_id` - consumer group identifier.
   - `batch_size` - batch size (number of messages) consumed at a time.
   - `bootstrap_servers` - list of Kafka broker addresses.
   - `auth` - configuration for SASL_PLAINTEXT auth (optional structure).
@@ -62,19 +69,19 @@ Environment variables:
 When the service starts, the following are started and begin to run:
 
 - `outbox_daemon`  
-  This is a daemon that reads messages from the [outbox queue] and sends them to Kafka.  
+  This is a daemon that reads messages from the `outbox queue` and sends them to `Kafka`.  
   Work logic:  
   When the service starts, an instance is started in a separate thread.
-  The daemon polls the [outbox queue] at certain intervals, and if there are messages, sends them to Kafka.
+  The daemon polls the `outbox queue` at certain intervals, and if there are messages, sends them to `Kafka`.
 - `kafka_consumer`  
-  This is a consumer of messages from Kafka.  
+  This is a consumer of messages from `Kafka`.  
   Work logic:  
   When the service starts, Consumer is launched in a separate thread.
-  Consumer connects to Kafka and starts reading messages in batches (of size N).
-  All messages in the batch are pushed to the [inbox queue].
-  Then [inbox queue] is polled until all tasks from the batch are processed. Only then this batch is committed, and the next one is taken.
+  Consumer connects to `Kafka` and starts reading messages in batches (of size N).
+  All messages in the batch are pushed to the `inbox queue`.
+  Then `inbox queue` is polled until all tasks from the batch are processed. Only then this batch committed, and the next one taken.
 
-At the moment, [inbox/outbox] queues are implemented as `Redis Lists`, where we write to the tail of the queue, read from the beginning.
+At the moment, `inbox`/`outbox` queues are implemented as `Redis Lists`, where we write to the tail of the queue, read from the beginning.
 In the future, it is advisable to consider `Redis Stream` or `Apache Pulsar` - this will guarantee processing (unlike `Redis Lists`).
 
 ### Local startup
@@ -113,7 +120,8 @@ To deploy a project locally in `Docker`, you need to:
 
 1) Make sure `Docker daemon` is running.
 2) Open a terminal in the project root, go to the `/docker` directory.
-3) Run a command (for example `docker compose up -d`) - dependent services (Redis, Kafka) will start.
+3) Run a command (for example `docker compose up -d`) - dependent services (Minio, Redis, Kafka) will start.
 4) Go to the Kafka container and run the command to create topics (for example `kafka-topics --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic test_input_topic`).
-5) Start the service itself (instructions in the `Local launch` section).
-6) Enjoy using. :wink:
+5) Go to [MinIO UI](http://localhost:9001/), and create a bucket (for example, named `test`).
+6) Start the service itself (instructions in the `Local launch` section).
+7) Enjoy using. :wink:

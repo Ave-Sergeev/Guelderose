@@ -16,7 +16,18 @@ pub struct S3Storage {
 
 impl S3Storage {
     pub async fn new(config: S3Config) -> Self {
-        let credentials = Credentials::from_keys(&config.access_key.clone().unwrap(), &config.secret_key.clone().unwrap(), None);
+        let access_key = config
+            .access_key
+            .as_ref()
+            .map(|s| s.reveal().to_owned())
+            .expect("missing s3 access_key");
+        let secret_key = config
+            .secret_key
+            .as_ref()
+            .map(|s| s.reveal().to_owned())
+            .expect("missing s3 secret_key");
+
+        let credentials = Credentials::from_keys(access_key, secret_key, None);
 
         let timeout = TimeoutConfig::builder()
             .operation_timeout(Duration::from_secs(config.client_connection_timeout_seconds))
@@ -64,18 +75,18 @@ impl S3Storage {
 
         let data = resp.body.collect().await?.into_bytes();
         tokio::fs::write(path, data).await?;
-        log::debug!("Successfully downloaded {}/{} to {}", &self.config.bucket, key, output_path);
+        log::debug!("Successfully downloaded {}/{} to {}", self.config.bucket, key, output_path);
 
         Ok(())
     }
 
     pub async fn put_presigned_url(&self, bucket: &str, key: &str, expire_days: Duration) -> Result<String, Error> {
-        self.presigned_url_with_operation(bucket, key, expire_days, S3PreSignOperation::PutObject)
+        self.presigned_url_with_operation(bucket, key, expire_days, S3PreSignOps::PutObject)
             .await
     }
 
     pub async fn get_presigned_url(&self, bucket: &str, key: &str, expire_days: Duration) -> Result<String, Error> {
-        self.presigned_url_with_operation(bucket, key, expire_days, S3PreSignOperation::GetObject)
+        self.presigned_url_with_operation(bucket, key, expire_days, S3PreSignOps::GetObject)
             .await
     }
 
@@ -84,12 +95,12 @@ impl S3Storage {
         bucket: &str,
         key: &str,
         expire_days: Duration,
-        operation: S3PreSignOperation,
+        operation: S3PreSignOps,
     ) -> Result<String, Error> {
         let presigning_config = PresigningConfig::expires_in(expire_days)?;
 
         let presigned_request = match operation {
-            S3PreSignOperation::GetObject => {
+            S3PreSignOps::GetObject => {
                 self.client
                     .get_object()
                     .bucket(bucket)
@@ -97,7 +108,7 @@ impl S3Storage {
                     .presigned(presigning_config)
                     .await?
             }
-            S3PreSignOperation::PutObject => {
+            S3PreSignOps::PutObject => {
                 self.client
                     .put_object()
                     .bucket(bucket)
@@ -114,7 +125,7 @@ impl S3Storage {
     }
 }
 
-enum S3PreSignOperation {
+enum S3PreSignOps {
     GetObject,
     PutObject,
 }

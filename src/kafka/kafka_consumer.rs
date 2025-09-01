@@ -10,24 +10,24 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub struct AnyKafkaConsumer {
-    redis_queue: Arc<RedisQueue>,
     consumer: StreamConsumer,
     kafka_config: KafkaConfig,
     redis_config: RedisConfig,
+    redis_queue: Arc<RedisQueue>,
 }
 
 impl AnyKafkaConsumer {
-    pub fn new(redis_queue: Arc<RedisQueue>, kafka_config: KafkaConfig, redis_config: RedisConfig) -> Self {
+    pub fn new(redis_queue: Arc<RedisQueue>, redis_config: RedisConfig, kafka_config: KafkaConfig) -> Self {
         let consumer: StreamConsumer = kafka_config
             .build_kafka_config()
             .create()
             .expect("Consumer creation failed");
 
         AnyKafkaConsumer {
-            redis_queue,
             consumer,
             kafka_config,
             redis_config,
+            redis_queue,
         }
     }
 
